@@ -1,0 +1,33 @@
+{
+  "name": "rts-airflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Outdoor air, cooling loads and room airflows (ASHRAE 62.1-2022 VRP + RTS). Port of the RTS workbook v0.8.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.app.json && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.app.json",
+    "e2e": "playwright test",
+    "build:libraries": "tsx tools/build_library_bundle.ts",
+    "build:example": "tsx tools/build_example_project.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

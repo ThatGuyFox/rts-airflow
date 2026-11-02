@@ -1,0 +1,24 @@
+# The GitHub repository is PUBLIC (decisions-web-app.md, 2026-11-02, step 8).
+# Allow-list: everything is ignored unless listed below, so a new file or folder stays private by default.
+# Private, never committed: libraries/ (ASHRAE tables), oracle/ (workbooks hold the library sheets),
+# reference/ (copyrighted books), examples/ (client project), docs/, HANDOFF.md, CLAUDE.md, test/, e2e/,
+# tools/ except the Revit exporter, _archive/, .claude/.
+/*
+!/.gitignore
+!/.github/
+!/README.md
+!/index.html
+!/package.json
+!/package-lock.json
+!/tsconfig.app.json
+!/vite.config.ts
+!/src/
+!/tools/
+/tools/*
+!/tools/revit/
+
+# Inside allowed folders
+node_modules/
+dist/
+*.log
+__pycache__/
