@@ -32,7 +32,7 @@ from Autodesk.Revit.DB import (
 )
 from System.Collections.Generic import List
 
-EXPORTER = "rts_airflow_export.py 1.1"
+EXPORTER = "rts_airflow_export.py 1.2"
 # Revit keeps heat transfer coefficients in W/(m²·K) internally (no length in the unit); → Btu/(h·ft²·°F)
 W_M2K_TO_BTU = 0.176110
 WALL_FUNCTION = {0: "Interior", 1: "Exterior", 2: "Foundation", 3: "Retaining", 4: "Soffit", 5: "CoreShaft"}
@@ -124,14 +124,23 @@ def chords(curve):
 def type_thermal(t):
     """(U in Btu/h·ft²·°F, SHGC) from a type's analytical properties, None where Revit has no value."""
     out = []
-    for name, conv in (("ANALYTICAL_HEAT_TRANSFER_COEFFICIENT", W_M2K_TO_BTU), ("ANALYTICAL_SOLAR_HEAT_GAIN_COEFFICIENT", 1.0)):
+    # U: Revit 2027 calls the parameter ANALYTICAL_THERMAL_TRANSMITTANCE; the older name is kept as a fallback.
+    for names, conv in (
+        (("ANALYTICAL_THERMAL_TRANSMITTANCE", "ANALYTICAL_HEAT_TRANSFER_COEFFICIENT"), W_M2K_TO_BTU),
+        (("ANALYTICAL_SOLAR_HEAT_GAIN_COEFFICIENT",), 1.0),
+    ):
         v = None
-        try:
-            p = t.get_Parameter(getattr(BuiltInParameter, name))
-            if p is not None and p.HasValue and p.AsDouble() > 0:
-                v = r4(p.AsDouble() * conv)
-        except Exception:
-            v = None
+        for name in names:
+            bip = getattr(BuiltInParameter, name, None)
+            if bip is None:
+                continue
+            try:
+                p = t.get_Parameter(bip)
+                if p is not None and p.HasValue and p.AsDouble() > 0:
+                    v = r4(p.AsDouble() * conv)
+                    break
+            except Exception:
+                pass
         out.append(v)
     return out[0], out[1]
 
