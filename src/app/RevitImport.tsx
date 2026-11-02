@@ -11,6 +11,8 @@ import { defaultPrefix, hasExterior, roomGlazing, importRevit, neededTypes, NO_R
 import { matchRoom, type RoomMatch } from "../model/roomMatch";
 import { resolveTypes, type TypeSource } from "../model/typeResolve";
 import { addSchedules, spaceDefaultsFor, type SpaceDefaultsLib } from "../model/spaceDefaults";
+import { buildCatalog, type IdKind } from "../model/idInfo";
+import { IdDetail, IdOptions } from "./IdDetail";
 import type { Options } from "./options";
 
 interface Props {
@@ -24,6 +26,8 @@ interface Props {
   options: Options;
   onCancel: () => void;
   onDone: (file: ProjectFile, ahuIndex: number, isNew: boolean, summary: string) => void;
+  /** Opens the library browser (what each ID means). */
+  onBrowse: (kind?: IdKind, q?: string) => void;
 }
 
 const CLASS_LABEL: Record<RoomClass, string> = { ahu: "On this AHU", conditioned: "Conditioned, no gain", unconditioned: "Unconditioned (Tadj)" };
@@ -75,7 +79,7 @@ function seriesInUse(f: ProjectFile | null, templateRts: string | null | undefin
 
 const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs, options, onCancel, onDone }: Props) {
+export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs, options, onCancel, onDone, onBrowse }: Props) {
   const levelsWithRooms = exp.levels.filter((l) => exp.rooms.some((r) => r.level === l.id));
   const [levelId, setLevelId] = useState(levelsWithRooms[0]?.id ?? exp.levels[0]?.id ?? "");
   const level = exp.levels.find((l) => l.id === levelId);
@@ -117,6 +121,11 @@ export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs
     [JSON.stringify(need), exp, types, remembered, libs, target],
   );
   const idMap = useMemo(() => Object.fromEntries(need.map((t) => [t.key, resolved.choice[t.key]?.id ?? ""])), [resolved]);
+  // What each ID means: library rows, the target project's rows, and the rows this import would add
+  const catalog = useMemo(
+    () => buildCatalog(libs, { constructions: target?.constructions ?? [], glazing: target?.glazing ?? [], shades: file?.shades ?? [], rts: file?.rts ?? [] }, { constructions: resolved.newConstructions, glazing: resolved.newGlazing }),
+    [libs, target, file, resolved],
+  );
   const ahuRooms = rooms.filter((r) => fullClasses[r.uid] === "ahu");
 
   // 62.1 category and exhaust type: matched from the room name (src/model/roomMatch.ts), changeable per room.
@@ -294,8 +303,6 @@ export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs
   };
 
   const set = (uid: string, c: RoomClass) => setClasses((x) => ({ ...x, [uid]: c }));
-  const typeOptions = (k: TypeKind) =>
-    k === "window" ? [...options.glazing, ...resolved.newGlazing.map((g) => g.id)] : [...options.constructions, ...resolved.newConstructions.map((c) => c.id)];
   const counts = preview && !("error" in preview) ? preview : null;
 
   return (
@@ -412,11 +419,7 @@ export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs
             <option key={o} value={o} />
           ))}
         </datalist>
-        <datalist id="ri-list-rts">
-          {options.rts.map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
+        <IdOptions list="ri-list-rts" infos={catalog.rts} />
         <div className="table-wrap">
           <table className="results compact">
             <thead>
@@ -483,6 +486,7 @@ export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs
                           onChange={(e) => setRtsPick((x) => ({ ...x, [r.uid]: e.target.value }))}
                         />
                         {rtsPick[r.uid] === undefined && autoRts(r).id && <span className="badge assumed">auto</span>}
+                        <IdDetail catalog={catalog} kind="rts" id={rtsOf(r)} />
                       </td>
                     </>
                   ) : (
@@ -508,7 +512,12 @@ export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs
       </div>
 
       <div className="panel">
-        <h3>Revit types → constructions and glazing</h3>
+        <h3>
+          Revit types → constructions and glazing{" "}
+          <button className="link small" onClick={() => onBrowse("construction")} data-testid="ri-browse">
+            What do these IDs mean?
+          </button>
+        </h3>
         <p className="muted small">
           Only the types on this AHU's rooms. Each ID comes from what you type here, else your map from earlier imports, else the Revit type's own U / SHGC: walls and roofs take the
           library row with the nearest U (ASSUMED until you edit or keep it); partitions, doors and windows get a project row with Revit's values (marked ASSUMED). What you type here
@@ -545,6 +554,7 @@ export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs
                           className={idMap[t.key] ? undefined : "invalid"}
                           onChange={(e) => setTypes((x) => ({ ...x, [t.key]: e.target.value }))}
                         />
+                        <IdDetail catalog={catalog} kind={t.kind === "window" ? "glazing" : "construction"} id={idMap[t.key]} />
                       </td>
                       <td className="text small" data-testid={`ri-src-${t.key}`}>
                         {c && c.src !== "none" && <span className={c.src === "revit-u" || c.src === "new-row" ? "badge assumed" : "badge"}>{SRC_LABEL[c.src]}</span>} <span className="muted">{c?.how}</span>
@@ -564,16 +574,8 @@ export function RevitImport({ exp, fileName, file, ahu, defaults, spaceLib, libs
             </table>
           </div>
         )}
-        <datalist id="ri-list-c">
-          {typeOptions("wall").map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
-        <datalist id="ri-list-g">
-          {typeOptions("window").map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
+        <IdOptions list="ri-list-c" infos={catalog.construction} />
+        <IdOptions list="ri-list-g" infos={catalog.glazing} />
       </div>
 
       <div className="panel">

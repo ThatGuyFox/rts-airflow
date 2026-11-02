@@ -6,6 +6,8 @@ import { librariesFromBundle, parseLibraryBundle, type LibraryBundle } from "../
 import { defaultItems, firstRoom, keepDefault, newProjectFile, pruneDefaults, type DefaultItem } from "../model/newProject";
 import { newAhu, parseProjectFile, toProjectInput, type AhuEntry, type ProjectFile } from "../model/projectFile";
 import { num } from "./fmt";
+import type { IdKind } from "../model/idInfo";
+import { LibraryBrowser } from "./LibraryBrowser";
 import { buildOptions } from "./options";
 import { PlanTab } from "./PlanTab";
 import { RevitImport } from "./RevitImport";
@@ -65,6 +67,9 @@ export function App() {
   const libRef = useRef<HTMLInputElement>(null);
   const revitRef = useRef<HTMLInputElement>(null);
   const [revit, setRevit] = useState<{ exp: RevitExport; name: string } | null>(null);
+  const [browse, setBrowse] = useState<{ kind?: IdKind; q?: string } | null>(null);
+  // Opens the library browser; with no kind it keeps showing the kind it was last on.
+  const openBrowser = (kind?: IdKind, q?: string) => setBrowse((b) => ({ kind: kind ?? b?.kind, q }));
 
   // Restore the library file and any unsaved work kept in this browser
   useEffect(() => {
@@ -329,6 +334,9 @@ export function App() {
           {bundle ? `Libraries loaded (${bundle.built})` : "Libraries missing"}
         </span>
         <button onClick={() => libRef.current?.click()}>{bundle ? "Reload libraries" : "Load libraries"}</button>
+        <button onClick={() => openBrowser()} disabled={!bundle} data-testid="browse-libraries" title="What each construction, glazing, shade and RTS ID means">
+          Browse libraries
+        </button>
         <button onClick={newProject} data-testid="new-project">
           New project
         </button>
@@ -381,6 +389,7 @@ export function App() {
           options={options}
           onCancel={() => setRevit(null)}
           onDone={onRevitDone}
+          onBrowse={openBrowser}
         />
       )}
 
@@ -439,9 +448,11 @@ export function App() {
             {result && <SidePanel result={result} defaults={defaultItems(file, ahuIndex)} onKeep={keep} roomName={roomName} onRoom={openRoom} onProject={(kind) => setTab(kind === "north" ? "plan" : "inputs")} />}
           </div>
 
-          {roomId && <RoomPanel north={file.north.deg} ahu={ahu} roomId={roomId} result={result} options={options} onEdit={editAhu} onRename={renameRoom} onDelete={deleteRoom} onClose={() => setRoomId(null)} onSpaceDefaults={canFill(roomId) ? fillSpaceDefaults : null} />}
+          {roomId && <RoomPanel north={file.north.deg} ahu={ahu} roomId={roomId} result={result} options={options} onEdit={editAhu} onRename={renameRoom} onDelete={deleteRoom} onClose={() => setRoomId(null)} onSpaceDefaults={canFill(roomId) ? fillSpaceDefaults : null} onBrowse={openBrowser} />}
         </>
       )}
+
+      {browse && bundle && <LibraryBrowser catalog={options.catalog} file={file} initial={browse} onClose={() => setBrowse(null)} />}
     </div>
   );
 }

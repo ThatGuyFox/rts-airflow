@@ -228,3 +228,25 @@ td.derived { color: var(--muted); font-variant-numeric: tabular-nums; text-align
 .revit-import h2, .revit-import h3 { margin-top: 0; }
 .revit-import select, .revit-import input { max-width: 100%; }
 
+
+/* What an ID means: one line under an ID field, and the library browser */
+.id-note { font-size: 11px; color: var(--muted); line-height: 1.35; margin-top: 2px; max-width: 280px; white-space: normal; }
+.id-note.bad { color: var(--error); }
+.lib-browser {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(1000px, 100vw); z-index: 20; overflow-y: auto;
+  background: var(--surface); border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18); padding: 0 18px 24px;
+}
+.lib-browser > header { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--surface); padding: 14px 0 10px; border-bottom: 1px solid var(--border); z-index: 1; }
+.lib-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 8px; border-bottom: 1px solid var(--border); }
+.lib-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+.lib-filters input[type="search"] { min-width: 260px; }
+table.lib-table tbody tr { cursor: pointer; }
+table.lib-table tbody tr:hover { background: var(--surface-2); }
+table.lib-table tbody tr.open { background: var(--accent-bg); }
+table.lib-table tr.lib-detail td { cursor: default; background: var(--surface-2); }
+table.lib-table td.text { max-width: 340px; }
+.lib-browser .cts { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.lib-browser details.acf { margin-top: 16px; }
+.lib-browser details.acf summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+.id-note.clamp .id-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.id-note.clamp { max-width: 190px; }

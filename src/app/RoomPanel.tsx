@@ -4,6 +4,8 @@ import type { ProjectResult, ProjectSpace } from "../engine/project";
 import { trueAz } from "../model/plan";
 import type { AhuEntry, FileSurface } from "../model/projectFile";
 import { num } from "./fmt";
+import type { IdKind } from "../model/idInfo";
+import { IdDetail, IdOptions } from "./IdDetail";
 import type { Options } from "./options";
 import { NumField, SelectField, TextField } from "./ui";
 
@@ -21,9 +23,11 @@ interface Props {
   onClose: () => void;
   /** Fills people, LPD, EPD and schedules from the space-type defaults of the room's category (null = no row). */
   onSpaceDefaults?: ((id: string) => void) | null;
+  /** Opens the library browser (what each ID means). */
+  onBrowse?: (kind?: IdKind, q?: string) => void;
 }
 
-export function RoomPanel({ north, ahu, roomId, result, options, onEdit, onRename, onDelete, onClose, onSpaceDefaults }: Props) {
+export function RoomPanel({ north, ahu, roomId, result, options, onEdit, onRename, onDelete, onClose, onSpaceDefaults, onBrowse }: Props) {
   const idx = ahu.spaces.findIndex((s) => s.id === roomId);
   const s = ahu.spaces[idx];
   if (!s) return null;
@@ -172,6 +176,7 @@ export function RoomPanel({ north, ahu, roomId, result, options, onEdit, onRenam
                   </td>
                   <td>
                     <input className="cell wide" list={win ? "opt-glazing" : "opt-con"} value={x.con} onChange={(e) => setSrf(i, "con", e.target.value)} />
+                    <IdDetail catalog={options.catalog} kind={win ? "glazing" : "construction"} id={x.con} clamp />
                   </td>
                   <td>
                     <CellNum value={x.modelAz ?? null} onChange={(v) => setSrf(i, "modelAz", v)} />
@@ -216,21 +221,16 @@ export function RoomPanel({ north, ahu, roomId, result, options, onEdit, onRenam
             })}
           </tbody>
         </table>
-        <datalist id="opt-con">
-          {options.constructions.map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
-        <datalist id="opt-glazing">
-          {options.glazing.map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
-        <datalist id="opt-shades">
-          {options.shades.map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
+        <IdOptions list="opt-con" infos={options.catalog.construction} />
+        <IdOptions list="opt-glazing" infos={options.catalog.glazing} />
+        <IdOptions list="opt-shades" infos={options.catalog.shade} />
+        {onBrowse && (
+          <p className="small">
+            <button className="link" onClick={() => onBrowse()} data-testid="room-browse">
+              What do these IDs mean?
+            </button>
+          </p>
+        )}
         <datalist id="opt-hosts">
           {ahu.surfaces
             .filter((x) => x.space === roomId && x.type !== "Window")

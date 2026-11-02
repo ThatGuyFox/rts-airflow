@@ -1,8 +1,11 @@
 // Pick lists for the input fields, read from the loaded libraries and the project's own rows.
 import type { EngineLibraries } from "../engine/project";
+import { buildCatalog, type Catalog } from "../model/idInfo";
 import type { ProjectFile } from "../model/projectFile";
 
 export interface Options {
+  /** What each construction / glazing / shade / RTS ID means (pick-list labels, detail lines, library browser). */
+  catalog: Catalog;
   ventCat: string[];
   ez: string[];
   exhType: string[];
@@ -26,6 +29,7 @@ export function buildOptions(lib: EngineLibraries | null, f: ProjectFile | null)
         .filter((x): x is string => !!x)
     : [];
   return {
+    catalog: buildCatalog(lib, f),
     ventCat: uniq(lib?.vent621.zone.rows.map((r) => r.category) ?? []),
     ez: uniq(lib?.vent621.ez.rows.map((r) => r.id) ?? []),
     exhType: uniq(lib?.vent621.exhaust.rows.map((r) => r.type) ?? []),
